@@ -107,29 +107,31 @@ export default {
 
       try {
         await axios.post(
-          "https://api.brevo.com/v3/smtp/email",
-          {
-            sender: { name: "Support", email: "alexander.gallorini@gmail.com" },
-            to: [{ email: email.value, name: name.value }],
-            subject: "Ditt möte är bokat!",
-            htmlContent: `
-              <h2>Hej ${name.value},</h2>
-              <p>Du har bokat ett möte den <strong>${selectedDate.value}</strong> klockan <strong>${selectedTime.value}</strong>.</p>
-              <p>Här är din möteslänk: <a href="${meetingLink.value}">${meetingLink.value}</a></p>
-            `,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "api-key": import.meta.env.VITE_BREVO_API_KEY,
-            },
-          }
-        );
+  "https://api.brevo.com/v3/smtp/email",
+  {
+    sender: { name: "Support", email: "alexander.gallorini@gmail.com" },
+    to: [{ email: email.value, name: name.value }],
+    subject: "Ditt möte är bokat!",
+    htmlContent: `
+      <h2>Hej ${name.value},</h2>
+      <p>Du har bokat ett möte den <strong>${selectedDate.value}</strong> klockan <strong>${selectedTime.value}</strong>.</p>
+      <p>Här är din möteslänk: <a href="${meetingLink.value}">${meetingLink.value}</a></p>
+    `,
+  },
+  {
+    headers: {
+      "Content-Type": "application/json",
+      "accept": "application/json",
+      "api-key": process.env.VITE_BREVO_API_KEY,
+    },
+  }
+);
+
 
         bookingStatus.value = "✅ Möteslänk skickad till din e-post!";
       } catch (error) {
         console.error("Brevo API Error:", error.response?.data || error.message);
-        bookingStatus.value = "❌ Misslyckades med att skicka e-post: " + (error.response?.data?.message || "Okänt fel");
+        bookingStatus.value = "Misslyckades med att skicka e-post: " + (error.response?.data?.message || "Okänt fel");
       }
 
       isLoading.value = false;

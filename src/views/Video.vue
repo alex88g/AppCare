@@ -6,61 +6,83 @@
 </template>
 
 <script>
-import { onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 
 export default {
   setup() {
     const route = useRoute();
+    const jitsiLoaded = ref(false);
 
     function loadJitsiScript() {
       return new Promise((resolve, reject) => {
         if (window.JitsiMeetExternalAPI) {
+          console.log("Jitsi API redan laddat.");
           resolve();
           return;
         }
 
-        const script = document.createElement('script');
+        const script = document.createElement("script");
         script.src = "https://meet.jit.si/external_api.js";
         script.async = true;
-        script.onload = resolve;
-        script.onerror = reject;
+
+        script.onload = () => {
+          console.log("Jitsi API laddat framgångsrikt!");
+          jitsiLoaded.value = true;
+          resolve();
+        };
+        script.onerror = (error) => {
+          console.error("Fel vid laddning av Jitsi API:", error);
+          reject(error);
+        };
+
         document.head.appendChild(script);
       });
+    }
+
+    function initializeJitsi() {
+      if (!window.JitsiMeetExternalAPI) {
+        console.error("JitsiMeetExternalAPI saknas. Kan inte starta videosamtal.");
+        return;
+      }
+
+      const container = document.querySelector("#jitsi-container");
+      if (!container) {
+        console.error("Kunde inte hitta #jitsi-container i DOM.");
+        return;
+      }
+
+      const domain = "meet.jit.si";
+      const roomName = route.params.roomName || "VardApp-VideoCall";
+
+      const options = {
+        roomName: roomName,
+        parentNode: container,
+        width: "100%",
+        height: "500px",
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: false,
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          TOOLBAR_BUTTONS: ["microphone", "camera", "chat", "hangup"],
+        },
+      };
+
+      new window.JitsiMeetExternalAPI(domain, options);
+      console.log(`Videosamtal startat i rum: ${roomName}`);
     }
 
     onMounted(async () => {
       try {
         await loadJitsiScript();
-        if (!window.JitsiMeetExternalAPI) {
-          console.error("JitsiMeetExternalAPI kunde inte laddas.");
-          return;
-        }
-
-        const domain = "meet.jit.si";
-        const roomName = route.params.roomName || "VardApp-VideoCall";
-
-        const options = {
-          roomName: roomName,
-          parentNode: document.querySelector("#jitsi-container"),
-          width: "100%",
-          height: "500px",
-          configOverwrite: {
-            startWithAudioMuted: true,
-            startWithVideoMuted: false,
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            TOOLBAR_BUTTONS: ["microphone", "camera", "chat", "hangup"],
-          },
-        };
-
-        new window.JitsiMeetExternalAPI(domain, options);
+        initializeJitsi();
       } catch (error) {
-        console.error("Fel vid laddning av Jitsi API:", error);
+        console.error("Ett fel uppstod vid laddning av Jitsi:", error);
       }
     });
-  }
+  },
 };
 </script>
 
@@ -72,6 +94,7 @@ export default {
   justify-content: center;
   min-height: 100vh;
   padding: 40px;
+  background: #2c3e50;
 }
 
 .video-title {
