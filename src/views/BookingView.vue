@@ -121,11 +121,12 @@ export default {
   {
     headers: {
       "Content-Type": "application/json",
-      "accept": "application/json",
-      "api-key": process.env.VITE_BREVO_API_KEY,
+      "Accept": "application/json",
+      "api-key": import.meta.env.VITE_BREVO_API_KEY, 
     },
   }
 );
+
 
 
         bookingStatus.value = "✅ Möteslänk skickad till din e-post!";
