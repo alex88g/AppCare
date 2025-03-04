@@ -48,6 +48,7 @@
 
 <script>
 import { ref, computed } from "vue";
+import axios from "axios";
 
 export default {
   setup() {
@@ -60,25 +61,13 @@ export default {
     const bookingStatus = ref("");
     const isLoading = ref(false);
 
-    // Begränsade tider
+    const apiKey = import.meta.env.VITE_BREVO_API_KEY;
+    console.log("API Key:", apiKey);
+
+
     const availableHours = computed(() => {
       if (!selectedDate.value) return [];
-
-      const selectedDay = new Date(selectedDate.value);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const allHours = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
-      if (selectedDay.getTime() === today.getTime()) {
-        const now = new Date();
-        return allHours.filter(hour => {
-          const [h, m] = hour.split(":");
-          const hourDate = new Date();
-          hourDate.setHours(parseInt(h), parseInt(m), 0, 0);
-          return hourDate > now;
-        });
-      }
-      return allHours;
+      return ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
     });
 
     const isWeekend = computed(() => {
@@ -95,10 +84,75 @@ export default {
       }
     }
 
-    return { selectedDate, selectedTime, name, phone, email, meetingLink, bookingStatus, isLoading, availableHours, isWeekend, validateBookingDate };
+    async function generateMeetingLink() {
+      if (!selectedDate.value || !selectedTime.value || !name.value || !phone.value || !email.value) {
+        bookingStatus.value = "⚠️ Fyll i alla fält för att boka ett möte.";
+        return;
+      }
+
+      isLoading.value = true;
+      meetingLink.value = `https://meet.example.com/${selectedDate.value}-${selectedTime.value.replace(":", "")}`;
+
+      const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+      bookings.push({
+        id: Date.now(),
+        date: selectedDate.value,
+        time: selectedTime.value,
+        name: name.value,
+        phone: phone.value,
+        email: email.value,
+        meetingLink: meetingLink.value,
+      });
+      localStorage.setItem("bookings", JSON.stringify(bookings));
+
+      try {
+        await axios.post(
+          "https://api.brevo.com/v3/smtp/email",
+          {
+            sender: { name: "Support", email: "alexander.gallorini@gmail.com" },
+            to: [{ email: email.value, name: name.value }],
+            subject: "Ditt möte är bokat!",
+            htmlContent: `
+              <h2>Hej ${name.value},</h2>
+              <p>Du har bokat ett möte den <strong>${selectedDate.value}</strong> klockan <strong>${selectedTime.value}</strong>.</p>
+              <p>Här är din möteslänk: <a href="${meetingLink.value}">${meetingLink.value}</a></p>
+            `,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "api-key": import.meta.env.VITE_BREVO_API_KEY,
+            },
+          }
+        );
+
+        bookingStatus.value = "✅ Möteslänk skickad till din e-post!";
+      } catch (error) {
+        console.error("Brevo API Error:", error.response?.data || error.message);
+        bookingStatus.value = "❌ Misslyckades med att skicka e-post: " + (error.response?.data?.message || "Okänt fel");
+      }
+
+      isLoading.value = false;
+    }
+
+    return { 
+      selectedDate, 
+      selectedTime, 
+      name, 
+      phone, 
+      email, 
+      meetingLink, 
+      bookingStatus, 
+      isLoading, 
+      availableHours, 
+      isWeekend, 
+      validateBookingDate, 
+      generateMeetingLink 
+    };
   },
 };
 </script>
+
 
 <style scoped>
 .booking-container {

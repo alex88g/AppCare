@@ -42,58 +42,59 @@
   </template>
   
   <script>
-  import { ref, onMounted } from "vue";
-  
-  export default {
-    setup() {
-      const bookings = ref([]);
-      const isLoading = ref(false);
-      const errorMessage = ref("");
-      const availableHours = ref(["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"]);
-  
-      function fetchBookings() {
-        isLoading.value = true;
-        errorMessage.value = "";
-  
-        try {
-          const storedBookings = localStorage.getItem("bookings");
-          bookings.value = storedBookings ? JSON.parse(storedBookings).map(booking => ({
-            ...booking,
-            isEditing: false
-          })) : [];
-        } catch (error) {
-          errorMessage.value = "Fel vid hämtning av bokningar.";
-          console.error(error);
-        } finally {
-          isLoading.value = false;
-        }
+import { ref, onMounted } from "vue";
+
+export default {
+  setup() {
+    const bookings = ref([]);
+    const isLoading = ref(false);
+    const errorMessage = ref("");
+    const availableHours = ref(["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"]);
+
+    function fetchBookings() {
+      isLoading.value = true;
+      errorMessage.value = "";
+
+      try {
+        const storedBookings = localStorage.getItem("bookings");
+        bookings.value = storedBookings ? JSON.parse(storedBookings).map(booking => ({
+          ...booking,
+          isEditing: false
+        })) : [];
+      } catch (error) {
+        errorMessage.value = "Fel vid hämtning av bokningar.";
+        console.error(error);
+      } finally {
+        isLoading.value = false;
       }
-  
-      function editBooking(index) {
-        bookings.value[index].isEditing = true;
-      }
-  
-      function saveBooking(index) {
-        bookings.value[index].isEditing = false;
+    }
+
+    function editBooking(index) {
+      bookings.value[index].isEditing = true;
+    }
+
+    function saveBooking(index) {
+      bookings.value[index].isEditing = false;
+      localStorage.setItem("bookings", JSON.stringify(bookings.value));
+    }
+
+    function cancelEdit() {
+      fetchBookings(); // Reload data from localStorage to reset changes
+    }
+
+    function deleteBooking(index) {
+      if (confirm("Är du säker på att du vill radera denna bokning?")) {
+        bookings.value.splice(index, 1);
         localStorage.setItem("bookings", JSON.stringify(bookings.value));
       }
-  
-      function cancelEdit(index) {
-        fetchBookings();
-      }
-  
-      function deleteBooking(index) {
-        if (confirm("Är du säker på att du vill radera denna bokning?")) {
-          bookings.value.splice(index, 1);
-          localStorage.setItem("bookings", JSON.stringify(bookings.value));
-        }
-      }
-  
-      onMounted(fetchBookings);
-      return { bookings, isLoading, errorMessage, editBooking, saveBooking, cancelEdit, deleteBooking, availableHours };
-    },
-  };
-  </script>
+    }
+
+    onMounted(fetchBookings);
+    return { bookings, isLoading, errorMessage, editBooking, saveBooking, cancelEdit, deleteBooking, availableHours };
+  },
+};
+</script>
+
   
   <style scoped>
 .booking-container {
