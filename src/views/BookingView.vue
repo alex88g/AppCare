@@ -47,7 +47,7 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import axios from "axios";
 
 export default {
@@ -60,13 +60,38 @@ export default {
     const meetingLink = ref("");
     const bookingStatus = ref("");
     const isLoading = ref(false);
+    const bookedSlots = ref([]); 
 
     const apiKey = import.meta.env.VITE_BREVO_API_KEY;
     console.log("🔑 API Key:", apiKey || "❌ API-nyckeln är undefined!");
 
+    function fetchBookedSlots() {
+      const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+      bookedSlots.value = bookings.filter(booking => booking.date === selectedDate.value).map(booking => booking.time);
+    }
+
+    onMounted(fetchBookedSlots);
+
     const availableHours = computed(() => {
       if (!selectedDate.value) return [];
-      return ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+
+      const now = new Date();
+      const selectedDay = new Date(selectedDate.value);
+
+      return [
+        "08:00", "09:00", "10:00", "11:00", "12:00",
+        "13:00", "14:00", "15:00", "16:00"
+      ].filter(hour => {
+        const [hh, mm] = hour.split(":").map(Number);
+        const timeToCheck = new Date(selectedDay);
+        timeToCheck.setHours(hh, mm, 0, 0);
+
+        if (selectedDay.toDateString() === now.toDateString() && timeToCheck < now) {
+          return false;
+        }
+
+        return !bookedSlots.value.includes(hour);
+      });
     });
 
     const isWeekend = computed(() => {
@@ -77,6 +102,7 @@ export default {
 
     function validateBookingDate() {
       bookingStatus.value = isWeekend.value ? "📞 Endast akut samtal möjligt på lördagar och söndagar." : "";
+      fetchBookedSlots();
     }
 
     function isValidEmail(email) {
@@ -96,7 +122,6 @@ export default {
       }
 
       isLoading.value = true;
-      
       // meetingLink.value = `${window.location.origin}/video-call/${encodeURIComponent(selectedDate.value)}-${encodeURIComponent(selectedTime.value.replace(":", ""))}`;
       meetingLink.value = `https://meet.jit.si/${encodeURIComponent(selectedDate.value)}-${encodeURIComponent(selectedTime.value.replace(":", ""))}`;
 
@@ -141,6 +166,7 @@ export default {
         );
 
         bookingStatus.value = "✅ Möteslänk skickad till din e-post!";
+        fetchBookedSlots();
       } catch (error) {
         console.error("❌ Brevo API Error:", error.response?.data || error.message);
         bookingStatus.value = "❌ Misslyckades med att skicka e-post: " + (error.response?.data?.message || "Okänt fel");
@@ -165,8 +191,8 @@ export default {
     };
   },
 };
-
 </script>
+
 
 <style scoped>
 .booking-container {
