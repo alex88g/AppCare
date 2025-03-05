@@ -62,8 +62,7 @@ export default {
     const isLoading = ref(false);
 
     const apiKey = import.meta.env.VITE_BREVO_API_KEY;
-    console.log("API Key:", apiKey);
-
+    console.log("🔑 API Key:", apiKey || "❌ API-nyckeln är undefined!");
 
     const availableHours = computed(() => {
       if (!selectedDate.value) return [];
@@ -77,11 +76,11 @@ export default {
     });
 
     function validateBookingDate() {
-      if (isWeekend.value) {
-        bookingStatus.value = "📞 Endast akut samtal möjligt på lördagar och söndagar.";
-      } else {
-        bookingStatus.value = "";
-      }
+      bookingStatus.value = isWeekend.value ? "📞 Endast akut samtal möjligt på lördagar och söndagar." : "";
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
     async function generateMeetingLink() {
@@ -90,8 +89,18 @@ export default {
         return;
       }
 
+      if (!isValidEmail(email.value)) {
+        bookingStatus.value = "❌ Ange en giltig e-postadress.";
+        console.error("❌ Ogiltig e-post:", email.value);
+        return;
+      }
+
       isLoading.value = true;
-      meetingLink.value = `https://meet.example.com/${selectedDate.value}-${selectedTime.value.replace(":", "")}`;
+      
+      // meetingLink.value = `${window.location.origin}/video-call/${encodeURIComponent(selectedDate.value)}-${encodeURIComponent(selectedTime.value.replace(":", ""))}`;
+      meetingLink.value = `https://meet.jit.si/${encodeURIComponent(selectedDate.value)}-${encodeURIComponent(selectedTime.value.replace(":", ""))}`;
+
+      console.log("✅ Generated Meeting Link:", meetingLink.value);
 
       const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
       bookings.push({
@@ -106,29 +115,34 @@ export default {
       localStorage.setItem("bookings", JSON.stringify(bookings));
 
       try {
+        console.log("📧 Sending email via Brevo...");
+        console.log("Email recipient:", email.value);
+
         await axios.post(
           "https://api.brevo.com/v3/smtp/email",
           {
             sender: { name: "Support", email: "alexander.gallorini@gmail.com" },
-            to: [{ email: email.value, name: name.value }],
+            to: [{ email: email.value.trim(), name: name.value.trim() || "Gäst" }],
             subject: "Ditt möte är bokat!",
             htmlContent: `
               <h2>Hej ${name.value},</h2>
               <p>Du har bokat ett möte den <strong>${selectedDate.value}</strong> klockan <strong>${selectedTime.value}</strong>.</p>
-              <p>Här är din möteslänk: <a href="${meetingLink.value}">${meetingLink.value}</a></p>
+              <p>Här är din möteslänk: <br>
+                <a href="${meetingLink.value}" target="_blank">${meetingLink.value}</a>
+              </p>
             `,
           },
           {
             headers: {
               "Content-Type": "application/json",
-              "api-key": import.meta.env.VITE_BREVO_API_KEY,
+              "api-key": apiKey,
             },
           }
         );
 
         bookingStatus.value = "✅ Möteslänk skickad till din e-post!";
       } catch (error) {
-        console.error("Brevo API Error:", error.response?.data || error.message);
+        console.error("❌ Brevo API Error:", error.response?.data || error.message);
         bookingStatus.value = "❌ Misslyckades med att skicka e-post: " + (error.response?.data?.message || "Okänt fel");
       }
 
@@ -151,8 +165,8 @@ export default {
     };
   },
 };
-</script>
 
+</script>
 
 <style scoped>
 .booking-container {

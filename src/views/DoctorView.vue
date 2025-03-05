@@ -79,7 +79,7 @@ export default {
     }
 
     function cancelEdit() {
-      fetchBookings(); // Reload data from localStorage to reset changes
+      fetchBookings();
     }
 
     function deleteBooking(index) {
