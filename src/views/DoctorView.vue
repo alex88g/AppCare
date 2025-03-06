@@ -106,6 +106,7 @@ export default {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   text-align: center;
   animation: fadeIn 0.5s ease-in-out;
+  margin-top: 150px;
 }
 
 @keyframes fadeIn {
