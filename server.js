@@ -16,6 +16,21 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'Message is required' });
   }
 
+  const allowedKeywords = [
+    "boka", "bokning", "läkartid", "tid", "avboka", "mina bokningar",
+    "hur bokar jag", "ändra en bokning", "navigera till bokning",
+    "hur hittar jag mina bokningar", "avbokning", "läkare", "vård", "patient",
+    "support", "hjälp med bokning", "möteslänk", "skapa möte", "akut vård"
+  ];
+
+  const isRelevant = allowedKeywords.some(keyword => message.toLowerCase().includes(keyword));
+
+  if (!isRelevant) {
+    return res.json({
+      response: "Tyvärr, vi svarar endast på frågor som rör vårdappen, bokningar och navigering till bokningar."
+    });
+  }
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -25,23 +40,33 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: message }]
+        messages: [
+          {
+            role: 'system',
+            content: `Du är en assistent för en vårdapp. 
+            Du får **endast** svara på frågor som handlar om bokningar och appens funktioner. 
+            Om en användare frågar om något annat, svara exakt detta:  
+            "Tyvärr, vi svarar endast på frågor som rör vårdappen, bokningar och navigering till bokningar."`
+          },
+          { role: 'user', content: message }
+        ],
+        temperature: 0,
+        max_tokens: 100
       })
     });
-  
+
     const data = await response.json();
-  
+
     if (data.error) {
       console.error('OpenAI Error:', data.error);
       return res.status(500).json({ error: `OpenAI Error: ${data.error.message}` });
     }
-  
+
     res.json({ response: data.choices[0].message.content });
   } catch (error) {
     console.error('Server error:', error);
     res.status(500).json({ error: 'Server error' });
   }
-  
 });
 
 const PORT = process.env.PORT || 3000;
