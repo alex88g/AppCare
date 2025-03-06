@@ -33,15 +33,15 @@ import videoCallImage from '../assets/video-call.svg';
 <style>
 .home-container {
   text-align: center;
-  padding: 40px;
+  margin-top: 150px;
 }
 
 .header {
-  background: linear-gradient(135deg, #3498db, #2ecc71);
   color: white;
   padding: 40px;
   border-radius: 10px;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .nav-buttons {
@@ -91,5 +91,9 @@ import videoCallImage from '../assets/video-call.svg';
 .feature img {
   width: 80px;
   margin-bottom: 10px;
+}
+
+h1{
+  color: #333;
 }
 </style>
